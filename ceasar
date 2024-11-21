@@ -1,0 +1,59 @@
+#server code
+#import socket
+
+import socket
+
+def encrypt(text):
+    result = ""
+    for i in range(len(text)):
+        char = text[i]
+        if (char.isupper()):
+            result += chr((ord(char) + 3 - 65) % 26 +65)
+        else:
+            result += chr((ord(char) + 3 - 97) % 26 +97)
+
+    return result
+
+def start_server(host='127.0.0.1',port=9999):
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+       
+       server_socket.bind((host,port))
+       server_socket.listen()
+       print(f'Server started. Listening on {host}:{port}')
+    
+       while True:
+        conn, addr = server_socket.accept()
+        with conn:
+            print(f'Connected by {addr}')
+            data = conn.recv(1024)
+            if not data:
+                break
+            print(f'Client: {data.decode()}')
+            message=data.decode()
+            encryted_message=encrypt(message)
+            conn.sendall(encryted_message.encode())
+            if data.decode().lower() == 'bye':
+                break
+            print(f'Client {addr} disconnected')
+
+if __name__ == "__main__":
+    start_server()
+
+#client code
+import socket
+
+HOST = '127.0.0.1'
+PORT = 9999
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    client_socket.connect((HOST, PORT))
+    print(f'Connected to {HOST}:{PORT}. Type "bye" to exit.')
+    
+    while True:
+        message = input("You: ")
+        client_socket.sendall(message.encode())
+        data = client_socket.recv(1024)
+        print(f'Server: {data.decode()}')
+        if message.lower() == 'bye':
+            break
