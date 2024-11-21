@@ -1,0 +1,82 @@
+from PIL import Image
+
+# Function to convert message into binary
+def message_to_bin(message):
+    return ''.join([format(ord(char), '08b') for char in message])
+
+# Function to convert binary data to message
+def bin_to_message(binary_data):
+    message = ''
+    for i in range(0, len(binary_data), 8):
+        byte = binary_data[i:i+8]
+        message += chr(int(byte, 2))
+    return message
+
+# Function to encode message into an image
+def encode_image(image_path, message):
+    image = Image.open(image_path)
+    encoded_image = image.copy()
+    width, height = image.size
+    pixels = encoded_image.load()
+
+    binary_message = message_to_bin(message) + '1111111111111110'  # Message with a delimiter
+
+    bin_index = 0
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x, y]
+
+            # Modify the least significant bit (LSB) of each color channel
+            if bin_index < len(binary_message):
+                r = int(format(r, '08b')[:-1] + binary_message[bin_index], 2)
+                bin_index += 1
+            if bin_index < len(binary_message):
+                g = int(format(g, '08b')[:-1] + binary_message[bin_index], 2)
+                bin_index += 1
+            if bin_index < len(binary_message):
+                b = int(format(b, '08b')[:-1] + binary_message[bin_index], 2)
+                bin_index += 1
+
+            pixels[x, y] = (r, g, b)
+
+            if bin_index >= len(binary_message):
+                break
+        if bin_index >= len(binary_message):
+            break
+
+    encoded_image.save("encoded_image_LSB.png")
+    print("Message encoded successfully.")
+
+# Function to decode the message from an image
+def decode_image(image_path):
+    image = Image.open(image_path)
+    binary_message = ""
+    width, height = image.size
+    pixels = image.load()
+
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x, y]
+
+            # Extract the LSB of each color channel
+            binary_message += format(r, '08b')[-1]
+            binary_message += format(g, '08b')[-1]
+            binary_message += format(b, '08b')[-1]
+
+    # Split by the delimiter to get the message
+    binary_message = binary_message.split('1111111111111110')[0]
+    message = bin_to_message(binary_message)
+
+    return message
+
+# Example usage
+image_path = "D:\Desktop\city.png"
+message = "tunak tunank tun tarara"
+
+# Encode the message
+encode_image(image_path, message)
+img=Image.open('encoded_image_LSB.png')
+img.show()
+# Decode the message
+decoded_message = decode_image("encoded_image_LSB.png")
+print("Decoded message:", decoded_message)
