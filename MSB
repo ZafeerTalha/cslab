@@ -1,0 +1,93 @@
+from PIL import Image
+
+# Function to convert message into binary
+def message_to_bin(message):
+    return ''.join([format(ord(char), '08b') for char in message])
+
+# Function to convert binary data to message
+def bin_to_message(binary_data):
+    message = ''
+    for i in range(0, len(binary_data), 8):
+        byte = binary_data[i:i+8]
+        message += chr(int(byte, 2))
+    return message
+
+# Function to encode message into an image using MSB
+def encode_image(image_path, message):
+    image = Image.open(image_path)
+    encoded_image = image.copy()
+    width, height = image.size
+    pixels = encoded_image.load()
+
+    binary_message = message_to_bin(message) + '0111111111111111'  # Message with a delimiter
+
+    bin_index = 0
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x, y]
+
+            # Modify the most significant bit (MSB) of each color channel
+            if bin_index < len(binary_message):
+                r = int(binary_message[bin_index] + format(r, '08b')[1:], 2)
+                bin_index += 1
+            if bin_index < len(binary_message):
+                g = int(binary_message[bin_index] + format(g, '08b')[1:], 2)
+                bin_index += 1
+            if bin_index < len(binary_message):
+                b = int(binary_message[bin_index] + format(b, '08b')[1:], 2)
+                bin_index += 1
+
+            pixels[x, y] = (r, g, b)
+
+            if bin_index >= len(binary_message):
+                break
+        if bin_index >= len(binary_message):
+            break
+
+    encoded_image.save("encoded_image_MSB.png")
+    print("Message encoded successfully.")
+
+# Function to decode the message from an image using MSB
+def decode_image(image_path):
+    image = Image.open(image_path)
+    binary_message = ""
+    width, height = image.size
+    pixels = image.load()
+
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x, y]
+
+            # Extract the MSB of each color channel
+            binary_message += format(r, '08b')[0]
+            binary_message += format(g, '08b')[0]
+            binary_message += format(b, '08b')[0]
+
+    # Split by the delimiter to get the message
+    binary_message = binary_message.split('0111111111111111')[0]
+    message = bin_to_message(binary_message)
+
+    return message
+
+# Example usage
+image_path = "D:\Desktop\city.png"
+message ='''Lorem Ipsum is simply dummy text of the 
+             printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. 
+             It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Why do we use it?It is a long established fact that a reader will be distracted by the readable content Lorem Ipsum is 
+              simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining 
+             essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Why do we use it?It is a long established fact that a reader will be distracted by the readable content
+               of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search 
+               for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolvedof a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing 
+             simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining 
+             essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Why do we use it?It is a long established fact that a reader will be distracted by the readable content
+               of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search 
+               for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolvedof a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing 
+               packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved'''
+
+# Encode the message
+encode_image(image_path, message)
+img=Image.open('encoded_image_MSB.png')
+img.show()
+# Decode the message
+decoded_message = decode_image("encoded_image_MSB.png")
+print("Decoded message:", decoded_message)
