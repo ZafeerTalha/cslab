@@ -1,0 +1,72 @@
+#server
+import socket
+
+
+HOST = '127.0.0.1'
+PORT = 9999
+
+import itertools
+import string
+
+def bruteforce_attack(password):
+    chars = string.printable.strip()
+    attempts = 0
+    for length in range(1, len(password) + 1):
+        for guess in itertools.product(chars, repeat=length,):
+            attempts += 1
+            guess = ''.join(guess)
+            if attempts>=2000000:
+                break
+            if guess == password:
+                return (attempts, guess)
+    return (attempts, None)
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+    server_socket.bind((HOST, PORT))
+    server_socket.listen()
+    print(f'Server started. Listening on {HOST}:{PORT}')
+    
+    while True:
+        conn, addr = server_socket.accept()
+        with conn:
+            print(f'Connected by {addr}')
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                print(f'Client: {data.decode()}')
+                pt=data.decode()
+                attempts, guess = bruteforce_attack(pt)
+                if attempts<2000000:
+                    if guess:
+                        response=f"Password cracked in {attempts} attempts. The password is {guess}."
+                    else:
+                        respone=f"Password not cracked after {attempts} attempts."
+                else:
+                    response=f"Password not cracked within 2000000 attempts."
+                conn.sendall(response.encode())
+                if data.decode().lower() == 'bye':
+                    break
+            print(f'Client {addr} disconnected')
+
+
+#client
+
+import socket
+
+
+HOST = '127.0.0.1'
+PORT = 9999
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    client_socket.connect((HOST, PORT))
+    print(f'Connected to {HOST}:{PORT}. Type "bye" to exit.')
+    
+    while True:
+        message = input("You: ")
+        client_socket.sendall(message.encode())
+        data = client_socket.recv(1024)
+        print(f'Server: {data.decode()}')
+        if message.lower() == 'bye':
+            break
+
