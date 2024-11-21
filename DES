@@ -1,0 +1,60 @@
+#server code
+#Functions to perform DES
+from Crypto.Cipher import DES
+from Crypto.Random import get_random_bytes
+from base64 import b64encode, b64decode
+
+def pad(text):
+    while len(text) % 8 != 0:
+        text += b' '
+    return text
+
+def des_encrypt(key, plaintext):
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded_plaintext = pad(plaintext)
+    ciphertext = cipher.encrypt(padded_plaintext)
+    return b64encode(ciphertext).decode()
+
+import socket
+
+HOST = '127.0.0.1'
+PORT = 9999
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+    server_socket.bind((HOST, PORT))
+    server_socket.listen()
+    print(f'Server started. Listening on {HOST}:{PORT}')
+    
+    while True:
+        conn, addr = server_socket.accept()
+        with conn:
+            print(f'Connected by {addr}')   
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                print(f'Client: {data.decode()}')
+                #Code to encrypt
+                key = get_random_bytes(8)
+                bytes=des_encrypt(key, data)
+                conn.sendall(bytes.encode())
+                if data.decode().lower() == 'bye':
+                    break
+            print(f'Client {addr} disconnected')
+
+#client code
+import socket
+HOST = '127.0.0.1'
+PORT = 9999
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    client_socket.connect((HOST, PORT))
+    print(f'Connected to {HOST}:{PORT}. Type "bye" to exit.')
+    
+    while True:
+        message = input("You: ")
+        client_socket.sendall(message.encode())
+        data = client_socket.recv(1024)
+        print(f'Server: {data.decode()}')
+        if message.lower() == 'bye':
+            break
